@@ -1,0 +1,27 @@
+from pydantic import BaseModel
+from typing import Optional
+
+class User(BaseModel):
+    username: str
+    password : str
+
+
+class UserInDB(User):
+    balance: float = 1000.0
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class Bet(BaseModel):
+    game_id:str
+    team:str
+    odds:float
+    amount:float
+
+class BetRecord(Bet):
+    user:str
+    resolved: bool=False
+    won: Optional[bool]=None
