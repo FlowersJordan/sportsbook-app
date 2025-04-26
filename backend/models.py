@@ -20,6 +20,7 @@ class Bet(BaseModel):
     team:str
     odds:float
     amount:float
+    bet_type: str
 
 class BetRecord(Bet):
     user:str

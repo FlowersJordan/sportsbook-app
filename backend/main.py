@@ -5,6 +5,7 @@ from auth import hash_password, verify_password, create_access_token, get_curren
 from dotenv import load_dotenv
 from models import Bet, BetRecord
 from jose import JWTError, jwt
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import json
 import os
@@ -15,6 +16,14 @@ app = FastAPI()
 DB_FILE = "database.json"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 BET_FILE = "bets.json"
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # or ["*"] during dev
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 def load_users():
     if not os.path.exists(DB_FILE):
@@ -69,35 +78,44 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @app.get("/games")
-def get_games(sport: str = "basketball_nba", bookmaker:str = "fanduel"):
+def get_games(sport: str = "basketball_nba", bookmaker: str = "fanduel"):
     url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds/"
     params = {
-
         "apiKey": ODDS_API_KEY,
         "regions": "us",
-        "markets": "h2h,spreads",
+        "markets": "h2h,spreads,totals",
         "oddsFormat": "american",
         "bookmakers": bookmaker
     }
 
     response = requests.get(url, params=params)
     if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Error fetching games")
+        raise HTTPException(status_code=500, detail=f"Odds API error: {response.text}")
 
-    # Optional: Clean response for frontend
     raw_games = response.json()
     games = []
 
     for g in raw_games:
+        book = next((b for b in g.get("bookmakers", []) if b.get("markets")), None)
+
+        if not book:
+            continue
+
+        markets = {m["key"]: m["outcomes"] for m in book["markets"]}
+
         games.append({
             "id": g.get("id"),
             "teams": g.get("teams", []),
             "commence_time": g.get("commence_time"),
-            "odds": g.get("bookmakers", [])[0]["markets"][0]["outcomes"]
-                if g.get("bookmakers") and g["bookmakers"][0].get("markets") else []
+            "bookmaker": book["title"],
+            "moneyline": markets.get("h2h", []),
+            "spread": markets.get("spreads", []),
+            "totals": markets.get("totals", [])
         })
 
     return games
+
+
 
 
 @app.post("/bets")
@@ -122,6 +140,7 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
         "team": bet.team,
         "odds": bet.odds,
         "amount": bet.amount,
+        "bet_type": bet.bet_type,
         "resolved": False,
         "won": None
     }
