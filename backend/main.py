@@ -58,7 +58,7 @@ def register(user: User):
     new_user = {
         "username": user.username,
         "password": hash_password(user.password),
-        "balance": 1000.0
+        "balance": 0.0
     }
 
     users.append(new_user)
@@ -149,5 +149,20 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
 
     return {"message": "Bet placed", "balance": user["balance"]}
 
+
+
+
+@app.get("/me")
+def get_current_user_info(username: str = Depends(get_current_user)):
+    users = load_users()
+    user = next((u for u in users if u["username"] == username), None)
+    if not user:
+        raise HTTPException(status_code=404, detail="User Not Found")
+    
+    return {
+        "username": user["username"],
+        "balance": user["balance"]
+
+    }
 
 
