@@ -35,7 +35,7 @@ export default function Games() {
     }
   };
 
-  const handleBet = async (gameId, team, odds, betType, key) => {
+  const handleBet = async (gameId, team, odds, betType, key, spread = null, total = null) => {
     const amount = parseFloat(betInputs[key]);
     if (!amount || amount <= 0) return alert("Enter a valid amount");
 
@@ -50,7 +50,9 @@ export default function Games() {
         team,
         odds,
         amount,
-        bet_type: betType
+        bet_type: betType,
+        ...(betType === "spread" && { spread_value: spread }),   // 🧠 If spread
+        ...(betType === "totals" && { total_value: total })      // 🧠 If totals
       });
       alert(`✅ Bet placed: $${amount} on ${team} (${betType})`);
 
@@ -138,7 +140,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="success"
-                                onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey, o.point)}
                               >
                                 Bet
                               </Button>
@@ -175,7 +177,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="warning"
-                                onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey, null ,o.point)}
                               >
                                 Bet
                               </Button>

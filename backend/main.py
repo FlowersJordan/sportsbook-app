@@ -14,6 +14,7 @@ load_dotenv()
 ODDS_API_KEY = os.getenv("ODDS_API_KEY")
 app = FastAPI()
 DB_FILE = "database.json"
+HOLDING_FILE = "holding.json"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 BET_FILE = "bets.json"
 
@@ -47,6 +48,17 @@ def load_bets():
 def save_bets(bets):
     with open(BET_FILE, 'w') as f:
         json.dump(bets, f, indent=4)
+
+
+def load_holding():
+    if not os.path.exists(HOLDING_FILE):
+        return {"holding_balance": 0.0, "house_balance": 0.0}
+    with open(HOLDING_FILE, 'r') as f:
+        return json.load(f)
+
+def save_holding(data):
+    with open(HOLDING_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
 
 
 @app.post("/register")
@@ -128,11 +140,16 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
     if user["balance"] < bet.amount:
         raise HTTPException(status_code=400, detail="Insufficient funds")
 
-    # Subtract balance
+    # Subtract balance from user
     user["balance"] -= bet.amount
     save_users(users)
 
-    # 🔥 Calculate potential payout
+    # 🔥 Update Holding
+    holding = load_holding()
+    holding["holding_balance"] += bet.amount
+    save_holding(holding)
+
+    # Calculate potential payout
     if bet.odds > 0:
         potential_payout = (bet.amount * bet.odds / 100) + bet.amount
     else:
@@ -141,16 +158,18 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
     # Save bet
     bets = load_bets()
     record = {
-        "user": username,
-        "game_id": bet.game_id,
-        "team": bet.team,
-        "odds": bet.odds,
-        "amount": bet.amount,
-        "bet_type": bet.bet_type,
-        "potential_payout": round(potential_payout, 2),  # ✅ ADD this
-        "resolved": False,
-        "won": None
-    }
+    "user": username,
+    "game_id": bet.game_id,
+    "team": bet.team,
+    "bet_type": bet.bet_type,
+    "odds": bet.odds,
+    "amount": bet.amount,
+    "potential_payout": round(potential_payout, 2),
+    "spread_value": getattr(bet, "spread_value", None),
+    "total_value": getattr(bet, "total_value", None),
+    "resolved": False,
+    "won": None
+}
     bets.append(record)
     save_bets(bets)
 
@@ -173,3 +192,8 @@ def get_current_user_info(username: str = Depends(get_current_user)):
     }
 
 
+@app.get("/bets/me")
+def get_user_bet(username: str = Depends(get_current_user)):
+    bets = load_bets()
+    my_bets = [b for b in bets if b["user"] == username]
+    return my_bets

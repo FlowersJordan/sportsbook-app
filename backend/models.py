@@ -7,7 +7,7 @@ class User(BaseModel):
 
 
 class UserInDB(User):
-    balance: float = 1000.0
+    balance: float = 0.0
 
 
 class Token(BaseModel):
@@ -21,6 +21,8 @@ class Bet(BaseModel):
     odds:float
     amount:float
     bet_type: str
+    spread_value : Optional[float] = None
+    total_value : Optional[float] = None
 
 class BetRecord(Bet):
     user:str
