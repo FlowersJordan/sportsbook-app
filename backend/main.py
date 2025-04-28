@@ -132,6 +132,12 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
     user["balance"] -= bet.amount
     save_users(users)
 
+    # 🔥 Calculate potential payout
+    if bet.odds > 0:
+        potential_payout = (bet.amount * bet.odds / 100) + bet.amount
+    else:
+        potential_payout = (bet.amount * 100 / abs(bet.odds)) + bet.amount
+
     # Save bet
     bets = load_bets()
     record = {
@@ -141,6 +147,7 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
         "odds": bet.odds,
         "amount": bet.amount,
         "bet_type": bet.bet_type,
+        "potential_payout": round(potential_payout, 2),  # ✅ ADD this
         "resolved": False,
         "won": None
     }
