@@ -167,6 +167,7 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
     "potential_payout": round(potential_payout, 2),
     "spread_value": getattr(bet, "spread_value", None),
     "total_value": getattr(bet, "total_value", None),
+    "matchup" : getattr(bet, "matchup", None),
     "resolved": False,
     "won": None
 }

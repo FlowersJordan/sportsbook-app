@@ -35,7 +35,7 @@ export default function Games() {
     }
   };
 
-  const handleBet = async (gameId, team, odds, betType, key, spread = null, total = null) => {
+  const handleBet = async (gameId, team, odds, betType, key, spread = null, total = null, matchup = null) => {
     const amount = parseFloat(betInputs[key]);
     if (!amount || amount <= 0) return alert("Enter a valid amount");
 
@@ -52,7 +52,8 @@ export default function Games() {
         amount,
         bet_type: betType,
         ...(betType === "spread" && { spread_value: spread }),   // 🧠 If spread
-        ...(betType === "totals" && { total_value: total })      // 🧠 If totals
+        ...(betType === "totals" && { total_value: total }),
+        matchup      // 🧠 If totals
       });
       alert(`✅ Bet placed: $${amount} on ${team} (${betType})`);
 
@@ -103,7 +104,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="primary"
-                                onClick={() => handleBet(g.id, o.name, o.price, "moneyline", inputKey)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "moneyline", inputKey, null, null, g.teams.join(" vs "))}
                               >
                                 Bet
                               </Button>
@@ -140,7 +141,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="success"
-                                onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey, o.point)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey, o.point, g.teams(" vs "))}
                               >
                                 Bet
                               </Button>
@@ -177,7 +178,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="warning"
-                                onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey, null ,o.point)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey, null ,o.point, g.teams.join(" vs "))}
                               >
                                 Bet
                               </Button>

@@ -23,6 +23,7 @@ class Bet(BaseModel):
     bet_type: str
     spread_value : Optional[float] = None
     total_value : Optional[float] = None
+    matchup: Optional[str] = None
 
 class BetRecord(Bet):
     user:str
