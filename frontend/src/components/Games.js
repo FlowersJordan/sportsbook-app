@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Card, Button, Form, Container, Row, Col } from 'react-bootstrap';
 import API from "../api";
+import AppNavbar from './Navbar';
 
 export default function Games() {
   const [games, setGames] = useState([]);
@@ -24,6 +26,15 @@ export default function Games() {
     }));
   };
 
+  const calculatePayout = (odds, amount) => {
+    if (!amount || isNaN(amount)) return 0;
+    if (odds > 0) {
+      return ((amount * odds) / 100) + amount;
+    } else {
+      return ((amount * 100) / Math.abs(odds)) + amount;
+    }
+  };
+
   const handleBet = async (gameId, team, odds, betType, key) => {
     const amount = parseFloat(betInputs[key]);
     if (!amount || amount <= 0) return alert("Enter a valid amount");
@@ -43,7 +54,6 @@ export default function Games() {
       });
       alert(`✅ Bet placed: $${amount} on ${team} (${betType})`);
 
-      // Refresh balance after bet
       const resMe = await API.get("/me");
       setBalance(resMe.data.balance);
 
@@ -55,106 +65,137 @@ export default function Games() {
   };
 
   return (
-    <div className="p-4">
+    <>
+      <AppNavbar balance={balance} />
+      <Container className="mt-4">
+        <h2 className="mb-4">Upcoming Games</h2>
 
-      {balance !== null && (
-        <div style={{ marginBottom: "20px" }}>
-          <h3>Available Balance: ${balance.toFixed(2)}</h3>
-        </div>
-      )}
+        <Row xs={1} md={2} lg={2} className="g-4">
+          {games.map((g) => (
+            <Col key={g.id}>
+              <Card className="shadow-sm">
+                <Card.Body>
+                  <Card.Title className="mb-2">{g.teams?.join(" vs ")}</Card.Title>
+                  <Card.Subtitle className="mb-3 text-muted">
+                    {new Date(g.commence_time).toLocaleString()}
+                  </Card.Subtitle>
 
-      <h2 className="text-xl font-semibold mb-4">Upcoming Games</h2>
+                  {/* Moneyline */}
+                  {g.moneyline?.length > 0 && (
+                    <>
+                      <h5>Moneyline</h5>
+                      {g.moneyline.map((o) => {
+                        const inputKey = `${g.id}-moneyline-${o.name}`;
+                        const inputAmount = parseFloat(betInputs[inputKey]);
+                        return (
+                          <div key={o.name} className="d-flex flex-column mb-3">
+                            <div className="d-flex align-items-center mb-2">
+                              <span className="me-3">{o.name}: {o.price}</span>
+                              <Form.Control
+                                type="number"
+                                placeholder="Amount"
+                                value={betInputs[inputKey] || ""}
+                                onChange={(e) => handleInputChange(inputKey, e.target.value)}
+                                className="me-2"
+                                style={{ width: "100px" }}
+                              />
+                              <Button
+                                variant="primary"
+                                onClick={() => handleBet(g.id, o.name, o.price, "moneyline", inputKey)}
+                              >
+                                Bet
+                              </Button>
+                            </div>
+                            {betInputs[inputKey] && (
+                              <small className="text-muted">
+                                Potential Payout: ${calculatePayout(o.price, inputAmount).toFixed(2)}
+                              </small>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
 
-      {games.map((g) => (
-        <div key={g.id} className="border rounded-lg p-4 mb-6 shadow-md">
-          <p className="text-lg font-bold">{g.teams?.join(" vs ")}</p>
-          <p className="text-gray-600"><em>{new Date(g.commence_time).toLocaleString()}</em></p>
+                  {/* Spread */}
+                  {g.spread?.length > 0 && (
+                    <>
+                      <h5 className="mt-3">Spread</h5>
+                      {g.spread.map((o) => {
+                        const inputKey = `${g.id}-spread-${o.name}`;
+                        const inputAmount = parseFloat(betInputs[inputKey]);
+                        return (
+                          <div key={o.name} className="d-flex flex-column mb-3">
+                            <div className="d-flex align-items-center mb-2">
+                              <span className="me-3">{o.name}: {o.point} @ {o.price}</span>
+                              <Form.Control
+                                type="number"
+                                placeholder="Amount"
+                                value={betInputs[inputKey] || ""}
+                                onChange={(e) => handleInputChange(inputKey, e.target.value)}
+                                className="me-2"
+                                style={{ width: "100px" }}
+                              />
+                              <Button
+                                variant="success"
+                                onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey)}
+                              >
+                                Bet
+                              </Button>
+                            </div>
+                            {betInputs[inputKey] && (
+                              <small className="text-muted">
+                                Potential Payout: ${calculatePayout(o.price, inputAmount).toFixed(2)}
+                              </small>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
 
-          {/* Moneyline */}
-          {g.moneyline?.length > 0 && (
-            <div className="mt-4">
-              <h4 className="font-semibold">Moneyline</h4>
-              {g.moneyline.map((o) => {
-                const inputKey = `${g.id}-moneyline-${o.name}`;
-                return (
-                  <div key={o.name} className="flex items-center space-x-4 my-2">
-                    <span>{o.name}: {o.price}</span>
-                    <input
-                      type="number"
-                      placeholder="Amount"
-                      value={betInputs[inputKey] || ""}
-                      onChange={(e) => handleInputChange(inputKey, e.target.value)}
-                      className="border p-1 w-24 rounded"
-                    />
-                    <button
-                      onClick={() => handleBet(g.id, o.name, o.price, "moneyline", inputKey)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                    >
-                      Bet
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Spread */}
-          {g.spread?.length > 0 && (
-            <div className="mt-4">
-              <h4 className="font-semibold">Spread</h4>
-              {g.spread.map((o) => {
-                const inputKey = `${g.id}-spread-${o.name}`;
-                return (
-                  <div key={o.name} className="flex items-center space-x-4 my-2">
-                    <span>{o.name}: {o.point} @ {o.price}</span>
-                    <input
-                      type="number"
-                      placeholder="Amount"
-                      value={betInputs[inputKey] || ""}
-                      onChange={(e) => handleInputChange(inputKey, e.target.value)}
-                      className="border p-1 w-24 rounded"
-                    />
-                    <button
-                      onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey)}
-                      className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                    >
-                      Bet
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Totals */}
-          {g.totals?.length > 0 && (
-            <div className="mt-4">
-              <h4 className="font-semibold">Over / Under</h4>
-              {g.totals.map((o) => {
-                const inputKey = `${g.id}-totals-${o.name}`;
-                return (
-                  <div key={o.name} className="flex items-center space-x-4 my-2">
-                    <span>{o.name} {o.point} @ {o.price}</span>
-                    <input
-                      type="number"
-                      placeholder="Amount"
-                      value={betInputs[inputKey] || ""}
-                      onChange={(e) => handleInputChange(inputKey, e.target.value)}
-                      className="border p-1 w-24 rounded"
-                    />
-                    <button
-                      onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey)}
-                      className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600"
-                    >
-                      Bet
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+                  {/* Totals */}
+                  {g.totals?.length > 0 && (
+                    <>
+                      <h5 className="mt-3">Over / Under</h5>
+                      {g.totals.map((o) => {
+                        const inputKey = `${g.id}-totals-${o.name}`;
+                        const inputAmount = parseFloat(betInputs[inputKey]);
+                        return (
+                          <div key={o.name} className="d-flex flex-column mb-3">
+                            <div className="d-flex align-items-center mb-2">
+                              <span className="me-3">{o.name} {o.point} @ {o.price}</span>
+                              <Form.Control
+                                type="number"
+                                placeholder="Amount"
+                                value={betInputs[inputKey] || ""}
+                                onChange={(e) => handleInputChange(inputKey, e.target.value)}
+                                className="me-2"
+                                style={{ width: "100px" }}
+                              />
+                              <Button
+                                variant="warning"
+                                onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey)}
+                              >
+                                Bet
+                              </Button>
+                            </div>
+                            {betInputs[inputKey] && (
+                              <small className="text-muted">
+                                Potential Payout: ${calculatePayout(o.price, inputAmount).toFixed(2)}
+                              </small>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Container>
+    </>
   );
 }
