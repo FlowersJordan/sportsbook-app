@@ -5,18 +5,21 @@ import AppNavbar from './Navbar';
 
 export default function Bets() {
   const [bets, setBets] = useState([]);
-
+  const [balance, setBalance] = useState(null);
   useEffect(() => {
     const load = async () => {
       const res = await API.get("/bets/me");
       setBets(res.data);
+
+      const resMe = await API.get("/me");
+      setBalance(resMe.data.balance);
     };
     load();
   }, []);
 
   return (
     <>
-      <AppNavbar />
+      <AppNavbar balance = {balance}/>
       <Container className="mt-4">
         <h2 className="mb-4">My Pending Bets</h2>
 
