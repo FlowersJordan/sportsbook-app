@@ -31,6 +31,7 @@ export default function Bets() {
               <Col key={index}>
                 <Card className="shadow-sm">
                   <Card.Body>
+                    <Card.Title>{bet.matchup}</Card.Title>
                     <Card.Title>{bet.team} ({bet.bet_type})</Card.Title>
                     <Card.Subtitle className="mb-2 text-muted">
                       Odds: {bet.odds}

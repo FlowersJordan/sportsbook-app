@@ -28,4 +28,5 @@ class Bet(BaseModel):
 class BetRecord(Bet):
     user:str
     resolved: bool=False
+    matchup: Optional[str] = None
     won: Optional[bool]=None

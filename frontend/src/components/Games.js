@@ -8,6 +8,7 @@ export default function Games() {
   const [balance, setBalance] = useState(null);
   const [betInputs, setBetInputs] = useState({});
 
+
   useEffect(() => {
     const load = async () => {
       const resGames = await API.get("/games?sport=basketball_nba&bookmaker=fanduel");
@@ -35,7 +36,7 @@ export default function Games() {
     }
   };
 
-  const handleBet = async (gameId, team, odds, betType, key, spread = null, total = null, matchup = null, teams = []) => {
+  const handleBet = async (gameId, team, odds, betType, key, spread = null, total = null, matchup = null) => {
     const amount = parseFloat(betInputs[key]);
     if (!amount || amount <= 0) return alert("Enter a valid amount");
 
@@ -52,9 +53,7 @@ export default function Games() {
         amount,
         bet_type: betType,
         ...(betType === "spread" && { spread_value: spread }),   // 🧠 If spread
-        ...(betType === "totals" && { total_value: total }),
-        matchup,
-        teams     // 🧠 If totals
+        ...(betType === "totals" && { total_value: total }),    // 🧠 If totals
       });
       alert(`✅ Bet placed: $${amount} on ${team} (${betType})`);
 
@@ -105,7 +104,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="primary"
-                                onClick={() => handleBet(g.id, o.name, o.price, "moneyline", inputKey, null, null, g.teams.join(" vs "), g.teams)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "moneyline", inputKey, null, null, g.matchup)}
                               >
                                 Bet
                               </Button>
@@ -142,7 +141,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="success"
-                                onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey, o.point, null, g.teams.join(" vs "), g.teams)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "spread", inputKey, o.point, null, g.matchup)}
                               >
                                 Bet
                               </Button>
@@ -179,7 +178,7 @@ export default function Games() {
                               />
                               <Button
                                 variant="warning"
-                                onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey, null ,o.point, g.teams.join(" vs "), g.teams)}
+                                onClick={() => handleBet(g.id, o.name, o.price, "totals", inputKey, null ,o.point, g.matchup)}
                               >
                                 Bet
                               </Button>

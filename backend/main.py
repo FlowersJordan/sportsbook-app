@@ -115,9 +115,13 @@ def get_games(sport: str = "basketball_nba", bookmaker: str = "fanduel"):
 
         markets = {m["key"]: m["outcomes"] for m in book["markets"]}
 
+        moneyline_outcomes = markets.get("h2h", [])
+
+        teams = [team["name"] for team in moneyline_outcomes] if moneyline_outcomes else []
+
         games.append({
             "id": g.get("id"),
-            "teams": g.get("teams", []),
+            "teams": teams,
             "commence_time": g.get("commence_time"),
             "bookmaker": book["title"],
             "moneyline": markets.get("h2h", []),
@@ -140,11 +144,11 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
     if user["balance"] < bet.amount:
         raise HTTPException(status_code=400, detail="Insufficient funds")
 
-    # Subtract balance from user
+    # Subtract balance
     user["balance"] -= bet.amount
     save_users(users)
 
-    # 🔥 Update Holding
+    # Update holding balance
     holding = load_holding()
     holding["holding_balance"] += bet.amount
     save_holding(holding)
@@ -155,23 +159,50 @@ def place_bet(bet: Bet, username: str = Depends(get_current_user)):
     else:
         potential_payout = (bet.amount * 100 / abs(bet.odds)) + bet.amount
 
+    # ✅ Lookup matchup from Odds API using game_id
+    matchup = "Unknown Matchup"
+    try:
+        response = requests.get(
+            "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/",
+            params={
+                "apiKey": ODDS_API_KEY,
+                "regions": "us",
+                "markets": "h2h",
+                "bookmakers": "fanduel"
+            }
+        )
+        if response.status_code == 200:
+            for game in response.json():
+                if game.get("id") == bet.game_id:
+                # Extract team names from moneyline outcomes
+                    h2h_outcomes = None
+                    for b in game.get("bookmakers", []):
+                        for market in b.get("markets", []):
+                            if market.get("key") == "h2h":
+                                h2h_outcomes = market.get("outcomes", [])
+                                break
+                    if h2h_outcomes and len(h2h_outcomes) == 2:
+                        matchup = f"{h2h_outcomes[0]['name']} vs {h2h_outcomes[1]['name']}"
+                    break
+    except Exception as e:
+        print(f"❌ Failed to fetch matchup: {e}")
+
     # Save bet
     bets = load_bets()
     record = {
-    "user": username,
-    "game_id": bet.game_id,
-    "team": bet.team,
-    "bet_type": bet.bet_type,
-    "odds": bet.odds,
-    "amount": bet.amount,
-    "potential_payout": round(potential_payout, 2),
-    "spread_value": getattr(bet, "spread_value", None),
-    "total_value": getattr(bet, "total_value", None),
-    "matchup" : getattr(bet, "matchup", ""),
-    "teams": getattr(bet, "teams", []),
-    "resolved": False,
-    "won": None
-}
+        "user": username,
+        "game_id": bet.game_id,
+        "team": bet.team,
+        "bet_type": bet.bet_type,
+        "odds": bet.odds,
+        "amount": bet.amount,
+        "potential_payout": round(potential_payout, 2),
+        "spread_value": getattr(bet, "spread_value", None),
+        "total_value": getattr(bet, "total_value", None),
+        "matchup": matchup,
+        "resolved": False,
+        "won": None
+    }
     bets.append(record)
     save_bets(bets)
 
