@@ -39,7 +39,15 @@ export default function Bets() {
                     <Card.Text>
                       Wagered: <strong>${bet.amount.toFixed(2)}</strong><br />
                       Potential Payout: <strong>${bet.potential_payout.toFixed(2)}</strong><br />
-                      Status: <span className="badge bg-warning text-dark">{bet.resolved ? (bet.won ? "Won" : "Lost") : "Pending"}</span>
+                      {bet.bet_type === "spread" && (
+                        <div>Spread: <strong>{bet.spread_value}</strong></div>
+                      )}
+                      {bet.bet_type === "totals" && (
+                        <div>Total Line: <strong>{bet.total_value}</strong></div>
+                      )}
+                      Status: <span className={`badge ${bet.resolved ? (bet.won ? "bg-success" : "bg-danger") : "bg-warning text-dark"}`}>
+                        {bet.resolved ? (bet.won ? "Won" : "Lost") : "Pending"}
+                      </span>
                     </Card.Text>
                   </Card.Body>
                 </Card>
